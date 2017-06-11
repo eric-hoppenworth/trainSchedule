@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title></title>
+	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+	<link rel="stylesheet" type="text/css" href="assets/css/style.css">
+
+</head>
+<body>
+	<div class="container">
+		<div id ="title" class = "row text-center">
+			<h1>TRAINSSSSSSS</h1>
+		</div>
+		<div class = "row">
+			<div class="panel panel-default">
+				<div class="panel-heading">
+					<h3 class="panel-title">Trains</h3>
+				</div>
+				<div class="panel-body">
+					<div class = "row">
+						<div class = "col-xs-1">
+							
+						</div>
+						<div class = "col-xs-2">
+							<p> Train Name </p>
+						</div>
+						<div class = "col-xs-2">
+							<p> Destination </p>
+						</div>
+						<div class = "col-xs-2">
+							<p> Frequency(min)</p>
+						</div>
+						<div class = "col-xs-2">
+							<p> Next Arrival Time</p>
+						</div>
+						<div class = "col-xs-2">
+							<p> Minutes to Next Arrival </p>
+						</div>
+					</div>
+					<div id = "trainInfo">
+
+					</div>
+				</div>
+			</div>
+		</div>
+		<div id ="addTrain" calss = "row">
+			<div class="panel panel-default">
+				<div class="panel-heading">
+					<h3 class="panel-title">Add a New Train</h3>
+				</div>
+				<div class="panel-body">
+					<div class = "row">
+						<div class = "col-xs-2">
+							<label for = "nameInput">Train Name:</label>
+						</div>
+
+						<div class = "col-xs-10">
+							<input type="text" id="nameInput">
+						</div>
+					</div>
+
+					<div class = "row">
+						<div class = "col-xs-2">
+							<label for = "destInput">Destination:</label>
+						</div>
+
+						<div class = "col-xs-10">
+							<input type="text" id="destInput">
+						</div>
+					</div>
+
+					<div class = "row">
+						<div class = "col-xs-2">
+							<label for = "arrivalInput">Frist Arrival:</label>
+						</div>
+
+						<div class = "col-xs-10">
+							<input type="time" id="arrivalInput">
+						</div>
+					</div>
+
+					<div class = "row">
+						<div class = "col-xs-2">
+							<label for = "freqInput">Frequency:</label>
+						</div>
+
+						<div class = "col-xs-10">
+							<input type="number" id="freqInput">
+						</div>
+					</div>
+					<div class = "row">
+						<div class = "col-xs-2">
+							<button id= "btnNewTrain" class = "btn-default"> Submit</button>	
+						</div>
+						
+					</div>
+
+					
+					
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<script src="https://code.jquery.com/jquery-3.1.1.js"></script>
+	<script src="https://www.gstatic.com/firebasejs/4.1.2/firebase.js"></script>
+	<script type="text/javascript" src = "assets/javascript/js.js"></script>
+</body>
+</html>
