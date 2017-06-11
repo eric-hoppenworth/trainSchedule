@@ -35,7 +35,7 @@ function Train(name, dest, arrival, freq){
 
 //putting train on HTML and into array
 function printNewTrain(myTrain){
-	var trainRow = $("<div class = 'row train'>");
+	var trainRow = $("<div class = 'row trainRow'>");
 	var btnDiv = $("<div class = 'col-xs-1'>");
 	var nameDiv = $("<div class = 'col-xs-2'>");
 	var destDiv = $("<div class = 'col-xs-2'>");
@@ -67,11 +67,16 @@ $("#btnNewTrain").on("click",function(){
 		alert("All fields are required");
 		return false;
 	}
-
+	$("#nameInput").val("");
+	$("#destInput").val("");
+	$("#arrivalInput").val("");
+	$("#freqInput").val("");
 	var myTrain = new Train(name,dest,arrival,freq);
 });
 
 $(".container").on("click",".btnDelete",function(){
 	var myKey = $(this).attr("data-key")
 	dataBase.child(myKey).remove();
+	var index = $(".btnDelete").index(this);
+	$(".trainRow").eq(index).remove();
 })
