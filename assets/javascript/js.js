@@ -8,17 +8,6 @@ var config = {
 	messagingSenderId: "27202443767"
 };
 firebase.initializeApp(config);
-var dataBase = firebase.database().ref();
-var trainCount = 0;
-var myTrains = [];
-
-//get the trains from the dataBase
-dataBase.once("value", function(snapshot) {
-	trainCount = snapshot.numChildren();
-	snapshot.forEach(function(child){
-		printNewTrain(child.val());
-	});
-});
 
 //train object constructor for creating new train objects
 function Train(name, dest, arrival, freq){
@@ -27,11 +16,65 @@ function Train(name, dest, arrival, freq){
 	this.arrival = arrival;
 	this.freq = freq;
 	this.show = true;
-	this.key = dataBase.push().key;
-	dataBase.child(this.key).set(this);
+	//put the new train into the database
+	this.key = TrainEndPoint.push().key;
+	TrainEndPoint.child(this.key).set(this);
 	trainCount ++;
 	printNewTrain(this);
+};
+
+//object constructor for city
+function City(name,position){
+	this.holder = $("<div>");
+	this.holder.addClass("city");
+	this.holder.attr("data-name",name);
+	this.name = name;
+	this.position = position
+	var newStar = $("<img>");
+	newStar.attr("src","assets/images/star.png");
+	newStar.addClass("star");
+	var txt = $("<p>").text(name);
+	this.holder.append(newStar);
+	this.holder.append(txt);
+	this.holder.css(position);
+	//put on map
+	$("#mapHolder").append(this.holder);
+	//add to array
+	myCities.push(name);
+	//save the map in the dataBase
+	mapHolderString = JSON.stringify($("#mapHolder").html());
+	dataBase.child("mapHolder").set(mapHolderString);
 }
+
+
+var dataBase = firebase.database().ref();
+var trainCount = 0;
+var myTrains = [];
+var myCities = [];
+var myTime;
+var TrainEndPoint = dataBase.child("Trains");
+var mapHolderString;
+var mapHolderObject;
+
+
+
+//get the trains from the dataBase
+TrainEndPoint.once("value", function(snapshot) {
+	trainCount = snapshot.numChildren();
+	snapshot.forEach(function(child){
+		printNewTrain(child.val());
+	});
+});
+dataBase.child("mapHolder").once("value",function(snapshot){
+	//retrieve the map object
+	mapHolderObject = JSON.parse(snapshot.val());
+	$("#mapHolder").append(mapHolderObject);
+	//something to count the number of cities
+	$(".city").each(function(){
+		myCities.push($(this).attr("data-name"));
+	})
+})
+
 
 //putting train on HTML and into array
 function printNewTrain(myTrain){
@@ -76,7 +119,43 @@ $("#btnNewTrain").on("click",function(){
 
 $(".container").on("click",".btnDelete",function(){
 	var myKey = $(this).attr("data-key")
-	dataBase.child(myKey).remove();
+	TrainEndPoint.child(myKey).remove();
 	var index = $(".btnDelete").index(this);
 	$(".trainRow").eq(index).remove();
 })
+
+$("#btnAddCity").on("click",function(){
+	$("#myMap").one("click",function(event){
+
+		var cityName = prompt("What is the name of the city you are adding?");
+
+		if(myCities.indexOf(cityName) > -1){
+			alert("A city with that name already exists");
+			return false;
+		}
+
+
+		var mapX = $(this).offset().left - $(this).position().left;
+		var mapY = $(this).offset().top - $(this).position().top;
+		var starX = event.pageX - mapX;
+		var starY = event.pageY - mapY;
+		var starPosition = {
+			left: starX,
+			top: starY
+		};
+
+		new City(cityName,starPosition);
+	});
+});
+
+function getTime(){
+	myTime = new Date();
+	console.log(myTime.getYear());
+	console.log(myTime.getMonth());
+	console.log(myTime.getDate());
+	console.log(myTime.getDay());
+	console.log(myTime.getHours());
+	console.log(myTime.getMinutes());
+	//neat-o
+}
+
