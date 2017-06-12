@@ -12,27 +12,26 @@ firebase.initializeApp(config);
 //authentication
 var provider = new firebase.auth.GithubAuthProvider();
 
-firebase.auth().signInWithRedirect(provider)
+// firebase.auth().signInWithRedirect(provider)
 
-firebase.auth().getRedirectResult().then(function(result) {
-  if (result.credential) {
-    // This gives you a GitHub Access Token. You can use it to access the GitHub API.
-    var token = result.credential.accessToken;
-    // ...
-  }
-  // The signed-in user info.
-  var user = result.user;
-}).catch(function(error) {
-  // Handle Errors here.
-  var errorCode = error.code;
-  var errorMessage = error.message;
-  // The email of the user's account used.
-  var email = error.email;
-  // The firebase.auth.AuthCredential type that was used.
-  var credential = error.credential;
-  // ...
-});
-
+// firebase.auth().getRedirectResult().then(function(result) {
+//   if (result.credential) {
+//     // This gives you a GitHub Access Token. You can use it to access the GitHub API.
+//     var token = result.credential.accessToken;
+//     // ...
+//   }
+//   // The signed-in user info.
+//   var user = result.user;
+// }).catch(function(error) {
+//   // Handle Errors here.
+//   var errorCode = error.code;
+//   var errorMessage = error.message;
+//   // The email of the user's account used.
+//   var email = error.email;
+//   // The firebase.auth.AuthCredential type that was used.
+//   var credential = error.credential;
+//   // ...
+// });
 
 // firebase.auth().signInWithPopup(provider).then(function(result) {
 //   // This gives you a GitHub Access Token. You can use it to access the GitHub API.
@@ -93,10 +92,17 @@ var dataBase = firebase.database().ref();
 var trainCount = 0;
 var myTrains = [];
 var myCities = [];
-var myTime;
+var closingTime = "23:00";  //trains close at 11pm
+var myTime = new Date().toTimeString().substring(0,5); //simple time in form hh:mm
 var TrainEndPoint = dataBase.child("Trains");
 var mapHolderString;
 var mapHolderObject;
+
+var currentSeconds = new Date().getSeconds();
+setTimeout(function(){
+	updateTimes();
+	setInterval(updateTimes,60000);
+},(60-currentSeconds)*1000);
 
 
 
@@ -132,10 +138,16 @@ function printNewTrain(myTrain){
 	nameDiv.append("<p>" + myTrain.name + "</p>");
 	destDiv.append("<p>" + myTrain.dest + "</p>");
 	//the arrival will need to be adjusted based on current time
-	arrivalDiv.append("<p>" + myTrain.arrival + "</p>");
+	var arrString = getNextTrain(myTrain);
+	arrivalDiv.append("<p>" + arrString + "</p>");
 	freqDiv.append("<p>" + myTrain.freq + "</p>");
 	//time will also need to be adjusted based on current time
-	timeDiv.append("<p>" + 15 + "</p>");
+	if (arrString === "Closed"){
+		timeDiv.append("<p>" + "Tomorrow at " + myTrain.arrival + "</p>")
+	}else{
+		timeDiv.append("<p>" + minutesBetween(myTime,arrString) + "</p>");
+	}
+	
 
 	trainRow.append(btnDiv).append(nameDiv).append(destDiv).append(freqDiv).append(arrivalDiv).append(timeDiv);
 	$("#trainInfo").append(trainRow);
@@ -150,6 +162,14 @@ $("#btnNewTrain").on("click",function(){
 	var freq = $("#freqInput").val();
 	if (name === "" || dest === "" || arrival === "" || freq === ""){
 		alert("All fields are required");
+		return false;
+	}
+	//ensure that frequency is within certain parameters
+	if( parseInt(freq,10) <= 0){
+		alert("Frequency must be a positive number");
+		return false;
+	} else if( parseInt(freq,10) >  1440){
+		alert("frequency must be less than 24 hours.  Use a value of 1440 minutes for a train that only arrives once per day.")
 		return false;
 	}
 	$("#nameInput").val("");
@@ -190,14 +210,110 @@ $("#btnAddCity").on("click",function(){
 	});
 });
 
-function getTime(){
-	myTime = new Date();
-	console.log(myTime.getYear());
-	console.log(myTime.getMonth());
-	console.log(myTime.getDate());
-	console.log(myTime.getDay());
-	console.log(myTime.getHours());
-	console.log(myTime.getMinutes());
-	//neat-o
+
+//this is able to add a certain number of minutes to an arrival time.
+//the strings created here can be compared lexigraphically due to the leading zeroes.
+function addMinutes(time= "00:00" , minutes= 10){
+	var hourNum = parseInt(time.substring(0,2),10);
+	var minNum = parseInt(time.substring(3,5),10);
+
+	minNum += minutes;
+	//correct for going over 60
+	while(minNum>=60){
+		if (minNum >=60){
+			hourNum ++;
+			minNum -= 60;
+		}
+	}
+	//correct for going over 24(doesn't change the day or anything, just reset)
+	while(hourNum>=24){	
+		if (hourNum >= 24){
+			hourNum -= 24;
+		}
+	}
+	//rebuild string
+	var hourString;
+	if (hourNum < 10){
+		hourString = "0"+hourNum;
+	}else{
+		hourString = "" + hourNum;
+	}
+	var minString;
+	if (minNum < 10){
+		minString = "0"+minNum;
+	}else{
+		minString = "" + minNum;
+	}
+	return  hourString + ":" + minString;
 }
 
+//this will check to see how many minutes are remaining between two times
+//if the second parameter is left blank, it will default to closing time.
+function minutesBetween(currentTime, laterTime = closingTime){
+	var hourNum = parseInt(currentTime.substring(0,2),10);
+	var minNum = parseInt(currentTime.substring(3,5),10);
+
+	var currentMinutes = hourNum*60 + minNum;
+
+	var closeHour = parseInt(laterTime.substring(0,2),10);
+	var closeMin = parseInt(laterTime.substring(3,5),10);
+
+	var closingMinutes = closeHour*60 + closeMin;
+
+	var minutesRemaining = closingMinutes - currentMinutes;
+
+	if(minutesRemaining < 0){
+		//the train depot is closed
+		return "Closed"
+	} else if(minutesRemaining === 0){
+		//train is waiting
+		return "Waiting at station"
+	}else {
+		return minutesRemaining;
+	}
+	
+
+}
+
+//get the next arrival time for a certain train Object
+function getNextTrain(myTrain){ 
+	var trainTime = myTrain.arrival;
+	var currentTime = myTime;
+	var foundTime = false;
+	while(foundTime === false){
+		if(trainTime > currentTime){
+			//the train has not arrived yet
+			return trainTime;
+		} else if (trainTime === currentTime){
+			//the train is arriving right now
+			return trainTime;
+		} else {
+			//the train is still on its route
+			trainTime = addMinutes(trainTime,parseInt(myTrain.freq,10));
+		}
+		if(parseInt(myTrain.freq,10) > minutesBetween(currentTime)){
+			//this train has a frequency larger than the time left in the day.  It will not arrive agian until tommorow
+			return "Closed"
+		}
+	}
+}
+
+//every minute, I need to loop thru the trains and update the times
+function updateTimes(){
+	myTime = new Date().toTimeString().substring(0,5); //simple time in form hh:mm
+	for(var i = 0; i < myTrains.length; i++){
+		var arrString = getNextTrain(myTrains[i]);
+		//this will access the train's arrival time
+		$("#trainInfo").children().eq(i).children().eq(4).children().eq(0).text(arrString);
+
+		//time will also need to be adjusted based on current time
+		if (arrString === "Closed"){
+			var myMinutes = "Tomorrow at " + myTrains[i].arrival;
+		}else{
+			var myMinutes =  minutesBetween(myTime,arrString);
+		}
+		//this will access the train's minutes left
+		$("#trainInfo").children().eq(i).children().eq(5).children().eq(0).text(myMinutes);
+	}
+	
+}
