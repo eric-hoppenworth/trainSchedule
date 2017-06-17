@@ -60,7 +60,7 @@ var CityEndPoint = dataBase.child("Cities");
 var mapHolderString;
 var mapHolderObject;
 
-dataBase.once(function(snapshot){
+dataBase.once("value",function(snapshot){
 	//remove the sign in button
   	//$("#signIn").remove();
 	//put map on the page
