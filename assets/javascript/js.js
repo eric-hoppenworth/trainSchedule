@@ -1,4 +1,4 @@
-// Initialize Firebase
+// Initialize Firebase and authenticate/////////////////
 var config = {
 	apiKey: "AIzaSyAtVioWBqR2KGFyxmDXTu27W7AKe6xwtzI",
 	authDomain: "trainschedule-1fce4.firebaseapp.com",
@@ -44,80 +44,48 @@ $("#signIn").on("click",function(){
 
 
 
+///////////////////////////////////////////////////////////////////
+//     Globals    /////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////
+
+
+var dataBase = firebase.database().ref();
+var myTrains = [];
+var myCities = [];
+var closingTime = "23:00";  //trains close at 11pm
+var myTime = new Date().toTimeString().substring(0,5); //simple time in form hh:mm
+var TrainEndPoint = dataBase.child("Trains");
+var CityEndPoint = dataBase.child("Cities");
+
+var mapHolderString;
+var mapHolderObject;
+
+
+///////////////////////////////////////////////////////////////////
+//       Manage Trains      ///////////////////////////////////////
+///////////////////////////////////////////////////////////////////
+
+
 //train object constructor for creating new train objects
 function Train(name, dest, arrival, freq){
 	this.name = name;
 	this.dest = dest;
 	this.arrival = arrival;
 	this.freq = freq;
-	this.show = true;
 	//put the new train into the database
 	this.key = TrainEndPoint.push().key;
 	TrainEndPoint.child(this.key).set(this);
-	trainCount ++;
-	printNewTrain(this);
 };
 
-//object constructor for city
-function City(name,position){
-	this.holder = $("<div>");
-	this.holder.addClass("city");
-	this.holder.attr("data-name",name);
-	this.name = name;
-	this.position = position
-	var newStar = $("<img>");
-	newStar.attr("src","assets/images/star.png");
-	newStar.addClass("star");
-	var txt = $("<p>").text(name);
-	this.holder.append(newStar);
-	this.holder.append(txt);
-	this.holder.css(position);
-	//put on map
-	$("#mapHolder").append(this.holder);
-	//add to array
-	myCities.push(name);
-	//save the map in the dataBase
-	mapHolderString = JSON.stringify($("#mapHolder").html());
-	dataBase.child("mapHolder").set(mapHolderString);
-}
 
-
-var dataBase = firebase.database().ref();
-var trainCount = 0;
-var myTrains = [];
-var myCities = [];
-var closingTime = "23:00";  //trains close at 11pm
-var myTime = new Date().toTimeString().substring(0,5); //simple time in form hh:mm
-var TrainEndPoint = dataBase.child("Trains");
-var mapHolderString;
-var mapHolderObject;
-
-var currentSeconds = new Date().getSeconds();
-setTimeout(function(){
-	updateTimes();
-	setInterval(updateTimes,60000);
-},(60-currentSeconds)*1000);
-
-
-
-//get the trains from the dataBase
-TrainEndPoint.once("value", function(snapshot) {
-	trainCount = snapshot.numChildren();
-	snapshot.forEach(function(child){
-		printNewTrain(child.val());
-	});
+//get the trains from the database and put them on the screen
+TrainEndPoint.on("child_added", function(snapshot) {
+	var myTrain = snapshot.val();
+	printNewTrain(myTrain);
+	var trainIndex = myTrains.length;
+	myTrains.push(myTrain);
+	updateTime(trainIndex);
 });
-dataBase.child("mapHolder").once("value",function(snapshot){
-	//retrieve the map object
-	mapHolderObject = JSON.parse(snapshot.val());
-	//overwrite
-	$("#mapHolder").html(mapHolderObject);
-	//something to count the number of cities
-	$(".city").each(function(){
-		myCities.push($(this).attr("data-name"));
-	})
-})
-
 
 //putting train on HTML and into array
 function printNewTrain(myTrain){
@@ -133,28 +101,23 @@ function printNewTrain(myTrain){
 	nameDiv.append("<p>" + myTrain.name + "</p>");
 	destDiv.append("<p>" + myTrain.dest + "</p>");
 	//the arrival will need to be adjusted based on current time
-	var arrString = getNextTrain(myTrain);
-	arrivalDiv.append("<p>" + arrString + "</p>");
+	arrivalDiv.append("<p>" + myTrain.arrival + "</p>");
 	freqDiv.append("<p>" + myTrain.freq + "</p>");
 	//time will also need to be adjusted based on current time
-	if (arrString === "Closed"){
-		timeDiv.append("<p>" + "Tomorrow at " + myTrain.arrival + "</p>")
-	}else{
-		timeDiv.append("<p>" + minutesBetween(myTime,arrString) + "</p>");
-	}
-	
+	timeDiv.append("<p>" + "Tomorrow at " + myTrain.arrival + "</p>")
 
 	trainRow.append(btnDiv).append(nameDiv).append(destDiv).append(freqDiv).append(arrivalDiv).append(timeDiv);
 	$("#trainInfo").append(trainRow);
-	myTrains.push(myTrain);
 }
 
-
+//button for adding trains
 $("#btnNewTrain").on("click",function(){
 	var name = $("#nameInput").val();
 	var dest = $("#destInput").val();
 	var arrival = $("#arrivalInput").val();
 	var freq = $("#freqInput").val();
+
+	//validate data
 	if (name === "" || dest === "" || arrival === "" || freq === ""){
 		alert("All fields are required");
 		return false;
@@ -167,31 +130,92 @@ $("#btnNewTrain").on("click",function(){
 		alert("frequency must be less than 24 hours.  Use a value of 1440 minutes for a train that only arrives once per day.")
 		return false;
 	}
+	//clear inputs
 	$("#nameInput").val("");
 	$("#destInput").val("");
 	$("#arrivalInput").val("");
 	$("#freqInput").val("");
+	//create a new trainOBject
 	var myTrain = new Train(name,dest,arrival,freq);
 });
 
+
+//button for removing trains
+//removes form database, array, and HTML.
 $(".container").on("click",".btnDelete",function(){
-	var myKey = $(this).attr("data-key")
+	var myKey = $(this).attr("data-key");
 	TrainEndPoint.child(myKey).remove();
 	var index = $(".btnDelete").index(this);
+	myTrains.splice(index,1);
 	$(".trainRow").eq(index).remove();
-})
+});
 
+///////////////////////////////////////////////////////////////////
+//  Manage Cities /////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////
+
+
+//object constructor for city
+function City(name,position){
+
+	this.name = name;
+	this.position = position;
+	this.key = CityEndPoint.push().key;
+	//save the city in the dataBase
+	CityEndPoint.child(this.key).set(this);
+}
+
+//when added to the database, add to array and HTML
+CityEndPoint.on("child_added",function(snapshot){
+	var myCity = snapshot.val();
+	printNewCity(myCity);
+	myCities.push(myCity)
+});
+
+function printNewCity(myCity){
+	var holder = $("<div>");
+	holder.addClass("city");
+	holder.attr("data-name",myCity.name);
+	var newStar = $("<img>");
+	newStar.attr("src","assets/images/star.png");
+	newStar.addClass("star");
+	var txt = $("<p>").text(myCity.name);
+	holder.append(newStar);
+	holder.append(txt);
+	holder.css(myCity.position);
+	//put on map
+	$("#mapHolder").append(holder);
+
+};
+//depricated
+// dataBase.child("mapHolder").once("value",function(snapshot){
+// 	//retrieve the map object
+// 	mapHolderObject = JSON.parse(snapshot.val());
+// 	//overwrite
+// 	$("#mapHolder").html(mapHolderObject);
+// 	//something to count the number of cities
+// 	$(".city").each(function(){
+// 		myCities.push($(this).attr("data-name"));
+// 	})
+// })
+
+
+//if you click the add button, you will be able to add a new city to teh map
 $("#btnAddCity").on("click",function(){
 	$("#myMap").one("click",function(event){
 
 		var cityName = prompt("What is the name of the city you are adding?");
 
+		//validation
 		if(myCities.indexOf(cityName) > -1){
 			alert("A city with that name already exists");
 			return false;
 		}
+		if(cityName === null){
+			return false;
+		}
 
-
+		//calculate mouse position
 		var mapX = $(this).offset().left - $(this).position().left;
 		var mapY = $(this).offset().top - $(this).position().top;
 		var starX = event.pageX - mapX;
@@ -200,11 +224,24 @@ $("#btnAddCity").on("click",function(){
 			left: starX,
 			top: starY
 		};
-
-		new City(cityName,starPosition);
+		//create newCity object
+		var myCity = new City(cityName,starPosition);
 	});
 });
 
+//if you click a city already on the map, you can remove it
+$("#mapHolder").on("click",".city", function(){
+	$(this).remove();
+	//update database
+	mapHolderString = JSON.stringify($("#mapHolder").html());
+	dataBase.child("mapHolder").set(mapHolderString);
+})
+
+
+
+///////////////////////////////////////////////////////////////////
+//  Manage Times  /////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////
 
 //this is able to add a certain number of minutes to an arrival time.
 //the strings created here can be compared lexigraphically due to the leading zeroes.
@@ -272,19 +309,26 @@ function minutesBetween(currentTime, laterTime = closingTime){
 
 //get the next arrival time for a certain train Object
 function getNextTrain(myTrain){ 
-	var trainTime = myTrain.arrival;
+	//this one neven changes
+	var arrivalTime = myTrain.arrival;
+	//this one will
+	var scheduleTime = myTrain.arrival;
 	var currentTime = myTime;
 	var foundTime = false;
+	//first check to see if the train has had its first arrival
+	if (arrivalTime > currentTime) {
+		return "First Train";
+	}
 	while(foundTime === false){
-		if(trainTime > currentTime){
+		if(scheduleTime > currentTime){
 			//the train has not arrived yet
-			return trainTime;
-		} else if (trainTime === currentTime){
+			return scheduleTime;
+		} else if (scheduleTime === currentTime){
 			//the train is arriving right now
-			return trainTime;
+			return scheduleTime;
 		} else {
 			//the train is still on its route
-			trainTime = addMinutes(trainTime,parseInt(myTrain.freq,10));
+			scheduleTime = addMinutes(scheduleTime,parseInt(myTrain.freq,10));
 		}
 		if(parseInt(myTrain.freq,10) > minutesBetween(currentTime)){
 			//this train has a frequency larger than the time left in the day.  It will not arrive agian until tommorow
@@ -294,21 +338,42 @@ function getNextTrain(myTrain){
 }
 
 //every minute, I need to loop thru the trains and update the times
-function updateTimes(){
-	myTime = new Date().toTimeString().substring(0,5); //simple time in form hh:mm
+function updateAllTimes(){
 	for(var i = 0; i < myTrains.length; i++){
-		var arrString = getNextTrain(myTrains[i]);
-		//this will access the train's arrival time
-		$("#trainInfo").children().eq(i).children().eq(4).children().eq(0).text(arrString);
+		updateTime(i);
+	}
 
-		//time will also need to be adjusted based on current time
-		if (arrString === "Closed"){
-			var myMinutes = "Tomorrow at " + myTrains[i].arrival;
-		}else{
-			var myMinutes =  minutesBetween(myTime,arrString);
-		}
-		//this will access the train's minutes left
-		$("#trainInfo").children().eq(i).children().eq(5).children().eq(0).text(myMinutes);
+}
+function updateTime(trainIndex){
+	myTime = new Date().toTimeString().substring(0,5); //simple time in form hh:mm
+	var i = trainIndex
+	var arrivalString = getNextTrain(myTrains[i]);
+	//this will access the train's arrival time
+	if(arrivalString === "First Train"){
+		$("#trainInfo").children().eq(i).children().eq(4).children().eq(0).text(myTrains[i].arrival)
+	} else{
+		$("#trainInfo").children().eq(i).children().eq(4).children().eq(0).text(arrivalString);
 	}
 	
+	var myMinutes;
+	//time will also need to be adjusted based on current time
+	if (arrivalString === "Closed"){
+		myMinutes = "Tomorrow at " + myTrains[i].arrival;
+	}else if (arrivalString === "First Train"){
+		myMinutes = "First Train of the Day in " + minutesBetween(myTime,myTrains[i].arrival);
+	}else{
+		myMinutes =  minutesBetween(myTime,arrivalString);
+	}
+	//this will access the train's minutes left
+	$("#trainInfo").children().eq(i).children().eq(5).children().eq(0).text(myMinutes);
 }
+
+
+///////////////////////////
+// Code to run on Start ///
+///////////////////////////
+var currentSeconds = new Date().getSeconds();
+setTimeout(function(){
+	updateAllTimes();
+	setInterval(updateAllTimes,60000);
+},(60-currentSeconds)*1000);
