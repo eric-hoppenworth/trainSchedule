@@ -23,6 +23,8 @@ $("#signIn").on("click",function(){
 	    var token = result.credential.accessToken;
 	  }
 	  var user = result.user;
+	  //remove the sign in button
+	  $("#signIn").remove();
 	}).catch(function(error) {
 	  // Handle Errors here.
 	  var errorCode = error.code;
