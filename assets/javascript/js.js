@@ -108,7 +108,8 @@ TrainEndPoint.once("value", function(snapshot) {
 dataBase.child("mapHolder").once("value",function(snapshot){
 	//retrieve the map object
 	mapHolderObject = JSON.parse(snapshot.val());
-	$("#mapHolder").append(mapHolderObject);
+	//overwrite
+	$("#mapHolder").html(mapHolderObject);
 	//something to count the number of cities
 	$(".city").each(function(){
 		myCities.push($(this).attr("data-name"));
