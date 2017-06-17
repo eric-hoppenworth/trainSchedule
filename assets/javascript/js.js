@@ -40,6 +40,8 @@ $("#signIn").on("click",function(){
 	    console.error(error);
 	  }
 	});
+	//put the map up in place of the button
+	$("#mapHolder").html('<img id="myMap" alt="A map of the US" src="assets/images/map.png">');
 })
 
 
@@ -176,6 +178,7 @@ function printNewCity(myCity){
 	var holder = $("<div>");
 	holder.addClass("city");
 	holder.attr("data-name",myCity.name);
+	holder.attr("data-key",myCity.key);
 	var newStar = $("<img>");
 	newStar.attr("src","assets/images/star.png");
 	newStar.addClass("star");
@@ -187,20 +190,8 @@ function printNewCity(myCity){
 	$("#mapHolder").append(holder);
 
 };
-//depricated
-// dataBase.child("mapHolder").once("value",function(snapshot){
-// 	//retrieve the map object
-// 	mapHolderObject = JSON.parse(snapshot.val());
-// 	//overwrite
-// 	$("#mapHolder").html(mapHolderObject);
-// 	//something to count the number of cities
-// 	$(".city").each(function(){
-// 		myCities.push($(this).attr("data-name"));
-// 	})
-// })
 
-
-//if you click the add button, you will be able to add a new city to teh map
+//if you click the add button, you will be able to add a new city to the map
 $("#btnAddCity").on("click",function(){
 	$("#myMap").one("click",function(event){
 
@@ -231,13 +222,16 @@ $("#btnAddCity").on("click",function(){
 
 //if you click a city already on the map, you can remove it
 $("#mapHolder").on("click",".city", function(){
-	$(this).remove();
 	//update database
-	mapHolderString = JSON.stringify($("#mapHolder").html());
-	dataBase.child("mapHolder").set(mapHolderString);
+	var key = $(this).attr("data-key");
+	CityEndPoint.child(key).remove();
+	var index = myCities.indexOf($(this).attr("data-name"));
+	myCities.splice(index,1);
+
+	//remove from HTML
+	$(this).remove();
+
 })
-
-
 
 ///////////////////////////////////////////////////////////////////
 //  Manage Times  /////////////////////////////////////////////////
