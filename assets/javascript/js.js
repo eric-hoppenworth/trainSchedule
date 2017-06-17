@@ -23,8 +23,7 @@ $("#signIn").on("click",function(){
 	    var token = result.credential.accessToken;
 	  }
 	  var user = result.user;
-	  //remove the sign in button
-	  $("#signIn").remove();
+
 	}).catch(function(error) {
 	  // Handle Errors here.
 	  var errorCode = error.code;
@@ -40,8 +39,7 @@ $("#signIn").on("click",function(){
 	    console.error(error);
 	  }
 	});
-	//put the map up in place of the button
-	$("#mapHolder").html('<img id="myMap" alt="A map of the US" src="assets/images/map.png">');
+
 })
 
 
@@ -61,6 +59,13 @@ var CityEndPoint = dataBase.child("Cities");
 
 var mapHolderString;
 var mapHolderObject;
+
+dataBase.once(function(snapshot){
+	//remove the sign in button
+  	//$("#signIn").remove();
+	//put map on the page
+	$("#mapHolder").html('<img id="myMap" alt="A map of the US" src="assets/images/map.png">');
+})
 
 
 ///////////////////////////////////////////////////////////////////
