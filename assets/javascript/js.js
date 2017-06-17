@@ -9,33 +9,36 @@ var config = {
 };
 firebase.initializeApp(config);
 
-// Using a redirect.
-firebase.auth().getRedirectResult().then(function(result) {
-  if (result.credential) {
-    // This gives you a GitHub Access Token.
-    var token = result.credential.accessToken;
-  }
-  var user = result.user;
-}).catch(function(error) {
-  // Handle Errors here.
-  var errorCode = error.code;
-  var errorMessage = error.message;
-  // The email of the user's account used.
-  var email = error.email;
-  // The firebase.auth.AuthCredential type that was used.
-  var credential = error.credential;
-  if (errorCode === 'auth/account-exists-with-different-credential') {
-    alert('You have signed up with a different provider for that email.');
-    // Handle linking here if your app allows it.
-  } else {
-    console.error(error);
-  }
-});
-
 // Start a sign in process for an unauthenticated user.
 var provider = new firebase.auth.GithubAuthProvider();
 provider.addScope('repo');
-firebase.auth().signInWithRedirect(provider);
+
+$("#signIn").on("click",function(){
+	firebase.auth().signInWithRedirect(provider);
+
+	// Using a redirect.
+	firebase.auth().getRedirectResult().then(function(result) {
+	  if (result.credential) {
+	    // This gives you a GitHub Access Token.
+	    var token = result.credential.accessToken;
+	  }
+	  var user = result.user;
+	}).catch(function(error) {
+	  // Handle Errors here.
+	  var errorCode = error.code;
+	  var errorMessage = error.message;
+	  // The email of the user's account used.
+	  var email = error.email;
+	  // The firebase.auth.AuthCredential type that was used.
+	  var credential = error.credential;
+	  if (errorCode === 'auth/account-exists-with-different-credential') {
+	    alert('You have signed up with a different provider for that email.');
+	    // Handle linking here if your app allows it.
+	  } else {
+	    console.error(error);
+	  }
+	});
+})
 
 
 
