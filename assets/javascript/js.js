@@ -65,6 +65,9 @@ dataBase.once("value",function(snapshot){
   	//$("#signIn").remove();
 	//put map on the page
 	$("#mapHolder").html('<img id="myMap" alt="A map of the US" src="assets/images/map.png">');
+	for (var i = 0; i < myCities.length;i++){
+		printNewCity(myCities[i]);
+	}
 })
 
 
@@ -111,7 +114,7 @@ function printNewTrain(myTrain){
 	arrivalDiv.append("<p>" + myTrain.arrival + "</p>");
 	freqDiv.append("<p>" + myTrain.freq + "</p>");
 	//time will also need to be adjusted based on current time
-	timeDiv.append("<p>" + "Tomorrow at " + myTrain.arrival + "</p>")
+	timeDiv.append("<p>" + "Tomorrow at " + myTrain.arrival + "</p>");
 
 	trainRow.append(btnDiv).append(nameDiv).append(destDiv).append(freqDiv).append(arrivalDiv).append(timeDiv);
 	$("#trainInfo").append(trainRow);
@@ -134,7 +137,7 @@ $("#btnNewTrain").on("click",function(){
 		alert("Frequency must be a positive number");
 		return false;
 	} else if( parseInt(freq,10) >  1440){
-		alert("frequency must be less than 24 hours.  Use a value of 1440 minutes for a train that only arrives once per day.")
+		alert("frequency must be less than 24 hours.  Use a value of 1440 minutes for a train that only arrives once per day.");
 		return false;
 	}
 	//clear inputs
@@ -376,3 +379,20 @@ setTimeout(function(){
 	updateAllTimes();
 	setInterval(updateAllTimes,60000);
 },(60-currentSeconds)*1000);
+
+
+// function TrainAI(name,dest,arr,freq){
+// 	$("#destination").val(dest);
+// 	$("#startTime").val(arr);
+// 	$("#name").val(name);
+// 	$("#frequency").val(freq);
+
+// 	for (var i = 0; i<100;i++){
+// 		var time = 2000;
+// 		setTimeout(clickMe,time*i);
+// 	}
+// }
+
+// function clickMe(){
+// 	$("#submit").click();
+// }
